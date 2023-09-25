@@ -67,6 +67,8 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(unique=True)
     email: str = Field(unique=True)
+    password_hash: str
+    password_salt: str
 
     content: List["Content"] = Relationship(back_populates="owner")
     groups: List["Group"] = Relationship(back_populates="users", link_model=UserGroup)
@@ -98,6 +100,7 @@ class Group(SQLModel, table=True):
 
 class Permission(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True)
     type: PermissionType
     role: PermissionRole
 
