@@ -9,9 +9,9 @@ app = FastAPI()
 
 @app.on_event("startup")
 def on_startup():
-    database.create_db_and_tables()
-    with Session(database.engine) as session:
-        statement = select(models.Hero)
+    create_db_and_tables()
+    with Session(engine) as session:
+        statement = select(User)
 
 
 @app.get('/')
