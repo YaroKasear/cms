@@ -1,9 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
-from sqlmodel import Session, select, exists
+from sqlmodel import Session, select, col
 
-from models import *
-from database import *
+from models import User, Group, Permission, PermissionType, PermissionCategory
+from database import engine, create_db_and_tables
 
 app = FastAPI()
 
@@ -13,41 +13,33 @@ def on_startup():
     create_db_and_tables()
     with Session(engine) as session:
         if session.query(User).count():
-            print('Yes')
+            print("Yes")
         else:
-            ownerUser = User(
-                name='Owner',
-                email='name@example.com',
-                password_hash='none',
-                password_salt='none'
+            owner_user = User(
+                name="owner",
+                email="name@example.com",
+                password_hash="none",
+                password_salt="none",
             )
-            ownerPermission = Permission(
-                name='Owner',
-                type=PermissionType.OWNER,
-                role=PermissionRole.USER,
-                users=[ownerUser]
+            owner_user.permissions.append(
+                Permission(type=PermissionType.READ, category=PermissionCategory.USER)
             )
-            ownerGroup = Group(
-                name='Owner',
-                users=[ownerUser],
-                permissions=[ownerPermission]
+            owner_user.permissions.append(
+                Permission(type=PermissionType.UPDATE, category=PermissionCategory.USER)
             )
-            session.add(ownerUser)
+            owner_group = Group(name="owner", users=[owner_user])
+            session.add(owner_group)
             session.commit()
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.get("/user/{user_name}")
+@app.get("/api/user/{user_name}")
 async def get_user(user_name: str):
     with Session(engine) as session:
-        try:
-            user = session.exec(
-                select(User).where(User.name == user_name)
-            ).one()
-        except:
-            return {'error': 'not found'}
+        user = session.exec(
+            select(User.name, User.id).where(col(User.name) == user_name)
+        ).first()
 
-    return user.dict()
+    if user is not None:
+        return user
+    else:
+        raise HTTPException(status_code=404, detail=f"User {user_name} not found!")
